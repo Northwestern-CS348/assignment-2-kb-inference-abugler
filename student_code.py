@@ -141,6 +141,7 @@ class KnowledgeBase(object):
                     for support in fact.supported_by:
                         if isinstance(support, Rule) and match(support.lhs[0], fact_or_rule.statement):
                             fact.supported_by.remove(support)
+                            support.supports_facts.remove(fact)
                     if not fact.supported_by and not fact.asserted:
                         self.kb_retract(fact)
                 for rule in fact_or_rule.supports_rules:
@@ -148,6 +149,7 @@ class KnowledgeBase(object):
                     for support in rule.supported_by:
                         if isinstance(support, Rule) and match(support.lhs[0], fact_or_rule.statement):
                             rule.supported_by.remove(support)
+                            support.supports_rules.remove(rule)
                     if not rule.supported_by and not rule.asserted:
                         self.rules.remove(rule)
                 self.facts.remove(fact_or_rule)
@@ -222,10 +224,16 @@ class InferenceEngine(object):
                     newFact.asserted = False
                     fact.supports_facts.append(newFact)
                     rule.supports_facts.append(newFact)
-                    printv('{!r}', 1, verbose, [newFact.statement])
                     kb.facts.append(newFact)
                     for r in kb.rules:
                         self.fc_infer(newFact, r, kb)
+                    else:
+                        for f in kb.rules:
+                            if f == newFact:
+                                f.supported_by.append(fact)
+                                f.supported_by.append(rule)
+                                fact.supports_rules.append(f)
+                                rule.supports_rules.append(f)
             else:
                 newRule = Rule('rule', [])
                 i = 0
@@ -242,10 +250,17 @@ class InferenceEngine(object):
                     newRule.asserted = False
                     fact.supports_rules.append(newRule)
                     rule.supports_rules.append(newRule)
-                    printv('{!r}=>{!r}', 1, verbose, [newRule.lhs, newRule.rhs])
                     kb.rules.append(newRule)
                     for f in kb.facts:
                         self.fc_infer(f, newRule, kb)
+                else:
+                    for r in kb.rules:
+                        if r == newRule:
+                            r.supported_by.append(fact)
+                            r.supported_by.append(rule)
+                            fact.supports_rules.append(r)
+                            rule.supports_rules.append(r)
+
 
 
 
